@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cyberpunk Racer // 2D Arcade Racing</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="game-wrapper">
+    <!-- Top Header Bar -->
+    <header id="game-header">
+      <div class="brand-title">
+        <span class="cyber-bracket">[</span>
+        <span class="brand-text">Cyberpunk Racer</span>
+        <span class="cyber-bracket">]</span>
+        <span class="version-tag">v1.4</span>
+      </div>
+      <div class="header-status">
+        <span id="session-time">00:00.00</span>
+        <button id="btn-audio-toggle" class="btn-micro" title="Toggle Sound FX">Sound: <span id="audio-state-text">ON</span></button>
+        <button id="btn-pause-quick" class="btn-micro" title="Pause Game (ESC / P)">Pause</button>
+      </div>
+    </header>
+
+    <!-- Main Canvas & HUD Container -->
+    <div id="canvas-container">
+      <canvas id="gameCanvas" width="960" height="640"></canvas>
+
+      <!-- In-Game HUD Overlay -->
+      <div id="hud-layer" class="ui-layer hidden">
+        <!-- Top HUD Row -->
+        <div class="hud-top-bar">
+          <div class="hud-box">
+            <span class="hud-label">SCORE</span>
+            <span id="hud-score" class="hud-value">000000</span>
+          </div>
+          <div class="hud-box">
+            <span class="hud-label">CREDITS</span>
+            <span id="hud-coins" class="hud-value val-gold">000</span>
+          </div>
+          <div class="hud-box">
+            <span class="hud-label">TIME</span>
+            <span id="hud-timer" class="hud-value">00:00.00</span>
+          </div>
+          <div class="hud-box">
+            <span id="hud-lap-label" class="hud-label">LAP</span>
+            <span id="hud-lap" class="hud-value">1 / 3</span>
+          </div>
+          <div class="hud-box">
+            <span class="hud-label">BEST</span>
+            <span id="hud-best-score" class="hud-value val-cyan">000000</span>
+          </div>
+        </div>
+
+        <!-- Notification Banner -->
+        <div id="hud-banner" class="hud-banner hidden">
+          <span id="hud-banner-text">Lap 1</span>
+        </div>
+
+        <!-- Bottom Dashboard HUD -->
+        <div class="hud-bottom-bar">
+          <!-- Left: Health & Nitro -->
+          <div class="hud-panel hud-panel-left">
+            <div class="stat-row">
+              <div class="stat-header">
+                <span class="stat-title">CAR HEALTH</span>
+                <span id="hud-hp-text" class="stat-num">100%</span>
+              </div>
+              <div class="meter-frame">
+                <div id="hud-hp-bar" class="meter-fill fill-green" style="width: 100%;"></div>
+              </div>
+            </div>
+            <div class="stat-row">
+              <div class="stat-header">
+                <span class="stat-title">NITRO [SPACE]</span>
+                <span id="hud-nitro-text" class="stat-num">100%</span>
+              </div>
+              <div class="meter-frame">
+                <div id="hud-nitro-bar" class="meter-fill fill-cyan" style="width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center: Radar & Traffic Alert -->
+          <div class="hud-panel hud-panel-center">
+            <div id="hazard-warning" class="hazard-alert hidden">
+              <span class="alert-icon">!</span>
+              <span class="alert-text">TRAFFIC AHEAD</span>
+            </div>
+            <div class="radar-box">
+              <div class="radar-title">RADAR</div>
+              <div class="radar-display">
+                <div class="radar-line-v"></div>
+                <div class="radar-line-h"></div>
+                <div id="radar-player-dot" class="radar-dot dot-player"></div>
+                <div id="radar-blips-container"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Speedometer & Gear -->
+          <div class="hud-panel hud-panel-right">
+            <div class="speedo-cluster">
+              <div class="speed-number-wrap">
+                <span id="hud-speed" class="speed-digital">000</span>
+                <span class="speed-unit">KM/H</span>
+              </div>
+              <div class="speed-gauge-bar-wrap">
+                <div id="hud-speed-bar" class="speed-gauge-bar" style="width: 0%;"></div>
+              </div>
+              <div class="tachometer-row">
+                <span class="gear-tag">GEAR <strong id="hud-gear">1</strong></span>
+                <span class="mult-tag">x<strong id="hud-mult">1.0</strong> SCORE</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Start Countdown Overlay -->
+      <div id="countdown-overlay" class="menu-overlay hidden">
+        <div class="countdown-card">
+          <div id="countdown-number" class="countdown-text">3</div>
+          <div id="countdown-subtext" class="countdown-sub">READY</div>
+        </div>
+      </div>
+
+      <!-- Main Menu Screen -->
+      <div id="screen-main-menu" class="menu-overlay">
+        <div class="menu-dialog">
+          <div class="dialog-header">
+            <div class="sub-header-tag">WELCOME BACK, DRIVER</div>
+            <h1 class="dialog-title">Cyberpunk Racer</h1>
+            <p class="dialog-desc">A simple top-down 2D arcade racer. Dodge traffic, collect credits, and use your nitro wisely.</p>
+          </div>
+
+          <div class="dialog-body">
+            <!-- Mode Select Buttons -->
+            <div class="mode-select-grid">
+              <button id="btn-mode-circuit" class="btn-mode active" data-mode="circuit">
+                <div class="mode-code">MODE 01</div>
+                <div class="mode-name">Circuit Race</div>
+                <div class="mode-desc">3 fast laps around the city highway. Avoid traffic, pick up credits, and beat your best time.</div>
+              </button>
+              <button id="btn-mode-endless" class="btn-mode" data-mode="endless">
+                <div class="mode-code">MODE 02</div>
+                <div class="mode-name">Highway Rush</div>
+                <div class="mode-desc">Endless traffic run. Traffic gets denser and faster the longer you stay alive.</div>
+              </button>
+            </div>
+
+            <!-- Vehicle Tuning / Color Selection -->
+            <div class="config-panel">
+              <div class="config-label">CAR COLOR</div>
+              <div class="color-picker-row">
+                <button class="btn-color-swatch active" data-color="#00f3ff" style="--c: #00f3ff;">CYAN</button>
+                <button class="btn-color-swatch" data-color="#ff0055" style="--c: #ff0055;">MAGENTA</button>
+                <button class="btn-color-swatch" data-color="#ffb703" style="--c: #ffb703;">AMBER</button>
+                <button class="btn-color-swatch" data-color="#39ff14" style="--c: #39ff14;">GREEN</button>
+                <button class="btn-color-swatch" data-color="#9d4edd" style="--c: #9d4edd;">PURPLE</button>
+              </div>
+            </div>
+
+            <!-- Best Records Summary -->
+            <div class="records-strip">
+              <div class="record-item">
+                <span class="rec-lbl">BEST LAP TIME:</span>
+                <span id="menu-best-time" class="rec-val">--:--.--</span>
+              </div>
+              <div class="record-item">
+                <span class="rec-lbl">HIGH SCORE:</span>
+                <span id="menu-high-score" class="rec-val">000000</span>
+              </div>
+              <div class="record-item">
+                <span class="rec-lbl">TOTAL CREDITS:</span>
+                <span id="menu-total-coins" class="rec-val">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dialog-actions">
+            <button id="btn-start-game" class="btn-primary">START RACE [ENTER]</button>
+            <button id="btn-open-controls" class="btn-secondary">CONTROLS</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Screen Modal -->
+      <div id="screen-controls" class="menu-overlay hidden">
+        <div class="menu-dialog">
+          <div class="dialog-header">
+            <div class="sub-header-tag">HOW TO PLAY</div>
+            <h2 class="dialog-title">Controls &amp; Tips</h2>
+          </div>
+
+          <div class="dialog-body">
+            <div class="controls-grid">
+              <div class="control-card">
+                <div class="key-badge">W / UP ARROW</div>
+                <div class="control-info">
+                  <strong>Accelerate</strong>
+                  <span>Speed up and reach maximum engine speed.</span>
+                </div>
+              </div>
+              <div class="control-card">
+                <div class="key-badge">S / DOWN ARROW</div>
+                <div class="control-info">
+                  <strong>Brake / Reverse</strong>
+                  <span>Slow down quickly or back up if needed.</span>
+                </div>
+              </div>
+              <div class="control-card">
+                <div class="key-badge">A, D / LEFT, RIGHT</div>
+                <div class="control-info">
+                  <strong>Steering &amp; Drift</strong>
+                  <span>Sharp turns at high speeds will slide your car into a drift.</span>
+                </div>
+              </div>
+              <div class="control-card">
+                <div class="key-badge">SPACE / SHIFT</div>
+                <div class="control-info">
+                  <strong>Nitro Boost</strong>
+                  <span>Burst of high speed. Refills slowly over time or from nitro tanks.</span>
+                </div>
+              </div>
+              <div class="control-card">
+                <div class="key-badge">P / ESC</div>
+                <div class="control-info">
+                  <strong>Pause</strong>
+                  <span>Pause the race to check your current stats.</span>
+                </div>
+              </div>
+              <div class="control-card">
+                <div class="key-badge">R</div>
+                <div class="control-info">
+                  <strong>Quick Restart</strong>
+                  <span>Instantly restart the current race.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="intel-section">
+              <div class="intel-header">TRACK ITEMS &amp; HAZARDS</div>
+              <div class="intel-items">
+                <div class="intel-item"><span class="badge-chip gold">DATA CHIP</span> +150 Score &amp; Credits</div>
+                <div class="intel-item"><span class="badge-chip green">REPAIR KIT</span> Restores 35% Car Health</div>
+                <div class="intel-item"><span class="badge-chip cyan">NITRO TANK</span> Refills 40% Nitro Fuel</div>
+                <div class="intel-item"><span class="badge-chip orange">OIL SLICK</span> Causes car to slide &amp; spin out</div>
+                <div class="intel-item"><span class="badge-chip purple">EMP FIELD</span> Scrambles steering &amp; drains nitro</div>
+                <div class="intel-item"><span class="badge-chip red">TRAFFIC</span> Crashes cause heavy health damage</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dialog-actions">
+            <button id="btn-close-controls" class="btn-primary">BACK TO MENU</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause Menu Screen -->
+      <div id="screen-pause" class="menu-overlay hidden">
+        <div class="menu-dialog compact">
+          <div class="dialog-header">
+            <div class="sub-header-tag">RACE PAUSED</div>
+            <h2 class="dialog-title">Game Paused</h2>
+          </div>
+          <div class="dialog-body">
+            <div class="pause-stats">
+              <div class="pause-stat-row"><span>Current Score:</span> <strong id="pause-score">000000</strong></div>
+              <div class="pause-stat-row"><span>Current Speed:</span> <strong id="pause-speed">0 KM/H</strong></div>
+              <div class="pause-stat-row"><span>Elapsed Time:</span> <strong id="pause-time">00:00.00</strong></div>
+              <div class="pause-stat-row"><span>Car Health:</span> <strong id="pause-hp">100%</strong></div>
+            </div>
+          </div>
+          <div class="dialog-actions vertical">
+            <button id="btn-resume-game" class="btn-primary">RESUME [ESC]</button>
+            <button id="btn-restart-game-pause" class="btn-secondary">RESTART [R]</button>
+            <button id="btn-audio-toggle-pause" class="btn-secondary">SOUND: <span id="pause-audio-status">ON</span></button>
+            <button id="btn-quit-to-menu" class="btn-secondary">MAIN MENU</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Over / Results Screen -->
+      <div id="screen-results" class="menu-overlay hidden">
+        <div class="menu-dialog">
+          <div class="dialog-header">
+            <div id="results-badge" class="sub-header-tag">RACE FINISHED</div>
+            <h2 id="results-title" class="dialog-title text-gold">Race Finished!</h2>
+            <p id="results-subtitle" class="dialog-desc">Here are your race results:</p>
+          </div>
+
+          <div class="dialog-body">
+            <div id="new-record-alert" class="record-banner hidden">
+              *** NEW HIGH SCORE! ***
+            </div>
+
+            <div class="results-stats-grid">
+              <div class="result-card">
+                <span class="res-lbl">FINAL SCORE</span>
+                <span id="res-score" class="res-val val-cyan">000000</span>
+              </div>
+              <div class="result-card">
+                <span class="res-lbl">TOTAL TIME</span>
+                <span id="res-time" class="res-val">00:00.00</span>
+              </div>
+              <div class="result-card">
+                <span class="res-lbl">BEST LAP</span>
+                <span id="res-best-lap" class="res-val">00:00.00</span>
+              </div>
+              <div class="result-card">
+                <span class="res-lbl">TOP SPEED</span>
+                <span id="res-top-speed" class="res-val">000 KM/H</span>
+              </div>
+              <div class="result-card">
+                <span class="res-lbl">CREDITS</span>
+                <span id="res-coins" class="res-val val-gold">0</span>
+              </div>
+              <div class="result-card">
+                <span class="res-lbl">CARS PASSED</span>
+                <span id="res-overtakes" class="res-val">0</span>
+              </div>
+              <div class="result-card">
+                <span class="res-lbl">CRASHES</span>
+                <span id="res-collisions" class="res-val">0</span>
+              </div>
+              <div class="result-card">
+                <span class="res-lbl">FINAL HEALTH</span>
+                <span id="res-hull" class="res-val">100%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dialog-actions">
+            <button id="btn-restart-game-results" class="btn-primary">RACE AGAIN [ENTER]</button>
+            <button id="btn-menu-from-results" class="btn-secondary">MAIN MENU</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Controls & Key Guide Helper Bar -->
+    <footer id="game-footer">
+      <div class="keys-legend">
+        <span class="legend-item"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>&uarr;</kbd><kbd>&larr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd> Drive</span>
+        <span class="legend-item"><kbd>SPACE</kbd> / <kbd>SHIFT</kbd> Nitro</span>
+        <span class="legend-item"><kbd>P</kbd> / <kbd>ESC</kbd> Pause</span>
+        <span class="legend-item"><kbd>R</kbd> Restart</span>
+        <span class="legend-item"><kbd>M</kbd> Sound</span>
+      </div>
+      <div class="system-status">
+        <span class="status-indicator"></span> 60 FPS
+      </div>
+    </footer>
+  </div>
+
+  <!-- Scripts (Clean Vanilla Architecture) -->
+  <script src="js/data/cyberpunk_lore_db.js"></script>
+  <script src="js/data/tracks_data.js"></script>
+  <script src="js/data/drivers_db.js"></script>
+  <script src="js/data/achievements_db.js"></script>
+  <script src="js/data/customization_db.js"></script>
+  <script src="js/data/sound_wavetables.js"></script>
+  <script src="js/data/radio_dialogues.js"></script>
+  <script src="js/telemetry.js"></script>
+  <script src="js/replay.js"></script>
+  <script src="js/testing_suite.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/collectibles.js"></script>
+  <script src="js/traffic.js"></script>
+  <script src="js/track.js"></script>
+  <script src="js/car.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
